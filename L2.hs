@@ -16,8 +16,8 @@ import System.Environment
 type Vec = V.Vector(Int)
 
 -- addition of two vectors
-instance Num Vec where
-  a + b = V.zipWith (+) a b
+(.+.) :: Vec -> Vec -> Vec
+a .+. b = V.zipWith (+) a b
 
 -- Manhattan norm (non-negative integer)
 type Norm1 = Int
@@ -72,7 +72,7 @@ f(va, vb, [], i) = max i (norm1(va) + norm1(vb))
 --
 f(va, vb, (n, v): m, i)
     | i >= n + norm1(va) + norm1(vb) = i
-    | otherwise                      = f(v + va, vb, m, f(va, v + vb, m, i))
+    | otherwise                      = f(v .+. va, vb, m, f(va, v .+. vb, m, i))
 
 
 ---- annotate a matrix with the l2 norm of its submatrices

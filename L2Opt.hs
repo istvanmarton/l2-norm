@@ -9,8 +9,8 @@ import System.Environment
 
 type Vec = V.Vector Int
 
-instance Num Vec where
-  a + b = V.zipWith (+) a b
+(.+.) :: Vec -> Vec -> Vec
+a .+. b = V.zipWith (+) a b
 
 type Norm1 = Int
 
@@ -31,7 +31,7 @@ f (va, na) (vb, nb) m i = case m of
   [] -> max (na + nb) i
   (n, v): m'
     | i >= n + na + nb -> i
-    | otherwise -> f (withNorm1(v + va)) (vb, nb) m' (f (va, na) (withNorm1(v + vb)) m' i)
+    | otherwise -> f (withNorm1(v .+. va)) (vb, nb) m' (f (va, na) (withNorm1(v .+. vb)) m' i)
 
 f' v m i = f (withNorm1(V.replicate (V.length v) 0)) (withNorm1 v) m i
 
