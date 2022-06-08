@@ -16,14 +16,17 @@ The branch-and-bound solution of the problem is implemented in `L2.hs`.
 
 An optimized algorithm is implemented in `L2Opt.hs`.
 
-## Compilation
+## Installation
 
-    $ ghc -O2 L2
+1.  Install the GHC Haskell compiler (for example with [ghcup](https://www.haskell.org/ghcup/)).
+2.  Execute the following command: 
+
+        $ cabal install
 
 ## Usage
 
 Example usage:
 
-    $ ./L2 test.mat
+    $ L2 test.mat
 
 should return `282`.
