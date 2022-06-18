@@ -33,22 +33,18 @@ f (va, na) (vb, nb) m i = case m of
     | i >= n + na + nb -> i
     | otherwise -> f (withNorm1(v .+. va)) (vb, nb) m' (f (va, na) (withNorm1(v .+. vb)) m' i)
 
-f' v m i = f (withNorm1(V.replicate (V.length v) 0)) (withNorm1 v) m i
+f' v m = f (withNorm1(V.replicate (V.length v) 0)) (withNorm1 v) m 0
 
-g [] = (0, [])
-g (v: m) = (j, (j, v): mn)  where
-  (i, mn) = g m
-  j = f' v mn i
+g [] = []
+g (v: m) = (f' v mn, v): mn  where
+  mn = g m
 
 conc m1 m2@((n, _): _) = map (\(a, b) -> (a + n, b)) m1 ++ m2
 
 l2 :: [Vec] -> L2Norm
-l2 (v: m) = f' v (mn1 `conc` mn2) (max n1 n2)
+l2 (v: m) = f' v (g m1 `conc` g m2)
   where
     (m1, m2) = splitAt (length m `div` 2) m
-
-    (n1, mn1) = g m1
-    (n2, mn2) = g m2
 
 main :: IO ()
 main = do

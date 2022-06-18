@@ -75,21 +75,18 @@ f(va, vb, (n, v): m, i)
     | otherwise                      = f(v .+. va, vb, m, f(va, v .+. vb, m, i))
 
 
----- annotate a matrix with the l2 norm of its submatrices
---
--- The result's first element is the l2 norm of the whole matrix.
---
-g :: [Vec] -> (L2Norm, MatWithNorms)
-g([]) = (0, [])
-g(v: m) = (j, (j, v): mn)
+-- annotate a matrix with the l2 norm of its submatrices
+g :: [Vec] -> MatWithNorms
+g([]) = []
+g(v: m) = (j, v): mn
   where
-    (i, mn) = g(m)
-    j = f(V.replicate (V.length v) 0, v, mn, i)
+    mn = g(m)
+    j = f(V.replicate (V.length v) 0, v, mn, 0)
 
 
 -- calculation of l2 norm only
 l2 :: [Vec] -> L2Norm
-l2 = fst . g
+l2 = fst . head . g
 
 -- command line interface
 main :: IO ()
