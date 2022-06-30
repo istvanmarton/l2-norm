@@ -5,14 +5,16 @@
 --  - not all submatrix norms are calculated
 --  - parallel execution
 
-import System.Environment
-import qualified Data.Vector.Unboxed as V
+import Control.Concurrent
 import Control.Monad
 import Control.Monad.Par.IO
 import Control.Monad.IO.Class
 import Control.Monad.Par.Class
 import Data.IORef
-import Control.Concurrent
+import Data.Maybe
+import qualified Data.Vector.Unboxed as V
+import Options.Applicative
+
 
 type Vec = V.Vector Int
 
@@ -72,12 +74,21 @@ l2 guess (v:vs) = do
   m <- g ((length vs + 1) `div` 4) vs
   f' guess v m
 
-main :: IO ()
-main = do
-  args <- getArgs
-  case args of
-    [guess, f] -> do
+compute guess f = do
       s <- readFile f
       let m = (map (V.fromList . map read . words) . takeWhile (not . null) . lines) s
-      i <- l2 (read guess) m
+      i <- l2 guess m
       print i
+
+main :: IO ()
+main = join (execParser opts)
+ where
+    opts = info (helper <*> options)
+      ( fullDesc
+     <> progDesc "Partition the rows of a matrix in two disjoint sets A and B such that |sum A| + |sum B| is maximal, where |.| is the Manhattan norm."
+      )
+
+    options :: Parser (IO ())
+    options = compute
+      <$> (fromMaybe 0 <$> optional (option auto $ short 'g' <> long "guessed" <> metavar "NAT" <> help "guessed result - default is 0" <> completeWith ["0"]))
+      <*> (argument str (metavar "FILE" <> action "filename"))

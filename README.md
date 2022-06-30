@@ -32,4 +32,9 @@ Example usage:
 
 should return `282`.
 
+    $ L2 --guessed 282 test.mat
+
+should return also `282`, but it is faster.
+Note that `L2` will never give a result which is lower than the guessed value.
+
 `L2Slow` calculates the same number as `L2` but `L2` is much faster.

@@ -22,6 +22,7 @@ executable L2
                     , vector
                     , monad-par
                     , abstract-par
+                    , optparse-applicative
     default-language: Haskell2010
 
 executable L2Slow
