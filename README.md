@@ -30,11 +30,17 @@ Example usage:
 
     $ L2 test.mat
 
-should return `282`.
+returns
+
+    Row numbers in the two partitions:
+      Partition A:  1. 5. 7. 9. 10.
+      Partition B:  2. 3. 4. 6. 8.
+    L2 norm:
+      282
+
+Giving the guessed result does not change the result, but it is faster:
 
     $ L2 --guessed 282 test.mat
 
-should return also `282`, but it is faster.
 Note that `L2` will never give a result which is lower than the guessed value.
 
-`L2Slow` calculates the same number as `L2` but `L2` is much faster.
