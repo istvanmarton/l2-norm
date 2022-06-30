@@ -12,9 +12,10 @@ that the sum of the Manhattan norms of the sum of vectors in $B$ and the sum of 
 
 ## Implementation
 
-The branch-and-bound solution of the problem is implemented in `L2.hs`.
+The essence of the branch-and-bound algorithm is implemented in `L2Slow.hs`.
 
-An optimized algorithm is implemented in `L2Opt.hs`.
+`L2.hs` is the optimized version of `L2Slow.hs`.
+
 
 ## Installation
 
@@ -30,3 +31,5 @@ Example usage:
     $ L2 test.mat
 
 should return `282`.
+
+`L2Slow` calculates the same number as `L2` but `L2` is much faster.

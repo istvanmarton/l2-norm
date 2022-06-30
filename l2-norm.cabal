@@ -24,8 +24,8 @@ executable L2
                     , abstract-par
     default-language: Haskell2010
 
-executable L2Spec
-    main-is:          L2Spec.hs
+executable L2Slow
+    main-is:          L2Slow.hs
     build-depends:    base >=4.9
                     , vector
     default-language: Haskell2010
