@@ -1,9 +1,12 @@
--- optimized version of L2.hs
+----- optimized version of L2Slow.hs -----
 --
 -- Optimizations:
 --  - vector norms are cached
 --  - not all submatrix norms are calculated
 --  - parallel execution
+--
+-- Other improvements:
+--  - print the witness partition
 
 import Control.Concurrent
 import Control.Monad
