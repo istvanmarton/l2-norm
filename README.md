@@ -26,6 +26,9 @@ The essence of the branch-and-bound algorithm is implemented in `L2Slow.hs`.
 
 ## Usage
 
+
+### Basic usage
+
 Example usage:
 
     $ L2 test.mat
@@ -38,9 +41,19 @@ returns
     L2 norm:
       282
 
+
+### Running with guessed result
+
 Giving the guessed result does not change the result, but it is faster:
 
     $ L2 --guessed 282 test.mat
 
 Note that `L2` will never give a result which is lower than the guessed value.
 
+
+### Running on multiple cores
+
+The number of cores can be given by the `+RTS -N` option.
+Example:
+
+    $ L2 test.mat +RTS -N2
