@@ -1,8 +1,8 @@
 cabal-version:      2.4
 name:               l2-norm
-version:            0.1.0.0
+version:            0.2.0.0
 
-synopsis: L2 matrix norm calculation
+synopsis: L_n matrix norm calculation
 homepage:    https://github.com/divipp/l2-norm
 bug-reports: https://github.com/divipp/l2-norm/issues
 
@@ -15,18 +15,12 @@ category:           Math
 extra-source-files:
     README.md
 
-executable L2
-    main-is:          L2.hs
+executable Ln
+    main-is:          Ln.hs
     ghc-options: -O2 -threaded -rtsopts -with-rtsopts=-N
     build-depends:    base >=4.9
                     , vector
                     , monad-par
                     , abstract-par
                     , optparse-applicative
-    default-language: Haskell2010
-
-executable L2Slow
-    main-is:          L2Slow.hs
-    build-depends:    base >=4.9
-                    , vector
     default-language: Haskell2010

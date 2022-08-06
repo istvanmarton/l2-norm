@@ -1,0 +1,7 @@
+Row numbers in the two partitions:
+  Partition A:  1. 2. 4. 5. 7. 8. 10. 11. 12. 13. 14. 15. 20. 22. 25. 28. 32. 33. 35. 36. 39. 40. 41. 46. 47. 48. 54. 56. 58. 59. 60. 63. 64. 66. 68. 69. 70.
+  Partition B:  3. 6. 9. 16. 17. 18. 19. 21. 23. 24. 26. 27. 29. 30. 31. 34. 37. 38. 42. 43. 44. 45. 49. 50. 51. 52. 53. 55. 57. 61. 62. 65. 67.
+L2 norm:
+  412667
+916511.52user 31381.58system 5:33:58elapsed 4730%CPU (0avgtext+0avgdata 414588maxresident)k
+0inputs+8outputs (13major+11054980minor)pagefaults 0swaps

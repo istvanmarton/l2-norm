@@ -1,0 +1,46 @@
+
+                            < M A T L A B (R) >
+                  Copyright 1984-2015 The MathWorks, Inc.
+                   R2015a (8.5.0.197613) 64-bit (glnxa64)
+                             February 12, 2015
+
+ 
+For online documentation, see http://www.mathworks.com/support
+For product information, visit www.mathworks.com.
+ 
+>> >> >> >> >> >> >> >> >> >> >> >> >> >> >> 
+mA =
+
+    70
+
+
+mB =
+
+    70
+
+>> >> >> >> >> >> >> >> >> >> >> >> >> >> 
+ans =
+
+    70     3
+
+>> >> >> >> >> >> >> >> >> >> 
+L2 =
+
+      412667
+
+>> >> 
+Q =
+
+   5.3672e+05
+
+>> >> >> 
+S =
+
+      194369
+
+>> >> 
+eta_crit =
+
+    0.6376
+
+>> >> >> >> >> 
