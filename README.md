@@ -6,7 +6,7 @@ A modified problem is solved at [https://github.com/divipp/kmn-programming](http
 ## L_n norm
 
 Let *A* be a set of vectors.
-The goal is to partition the set $A$ into $n$ disjoint substest such
+The goal is to partition the set $A$ into $n$ disjoint subsets such
 that the sum of the Manhattan norms of the sum of the vectors in the subsets is maximal.
 The maximum is the L_n norm.
 
