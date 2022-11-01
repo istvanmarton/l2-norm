@@ -25,7 +25,7 @@ The maximum is the L_n norm.
 
 Example usage:
 
-    $ Ln --order 2 test.mat
+    $ Lk --order 2 test.mat
 
 returns
 
@@ -37,7 +37,7 @@ returns
 
 Other example:
 
-    $ Ln --order 3 test.mat
+    $ Lk --order 3 test.mat
 
 returns
 
@@ -53,7 +53,7 @@ returns
 
 Giving the guessed result does not change the result, but it is faster:
 
-    $ Ln --order 2 --guessed 282 test.mat
+    $ Lk --order 2 --guessed 282 test.mat
 
 The guessed value may be lower than the norm.
 If the guessed value is higher than the norm, the program halts with an error.
@@ -64,7 +64,7 @@ If the guessed value is higher than the norm, the program halts with an error.
 The number of cores can be given by the `+RTS -N` option.
 For example, running on 64 cores:
 
-    $ Ln --order 2 test.mat +RTS -N64
+    $ Lk --order 2 test.mat +RTS -N64
 
 You can fine-tune the granularity of the tasks for the cores by the `--depth` option.
 Bigger `--depth` means smaller tasks. Minimum depth value is 0, maximum is the number of matrix rows.
