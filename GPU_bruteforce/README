@@ -1,1 +1,13 @@
 This directory contains a brute force GPU implementation of the L and Lk matrix norms, for reference.
+
+Compilation (needs the nvcc Nvidia cuda compiler):
+
+    nvcc -o L1_str_que_int_mtx L1_str_que_int_mtx.cu
+
+    nvcc -o L2_str_que_int_mtx L2_str_que_int_mtx.cu
+
+Usage:
+
+    ./L1_str_que_int_mtx FILENAME    
+
+    ./L2_str_que_int_mtx FILENAME    
