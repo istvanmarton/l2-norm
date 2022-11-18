@@ -1,4 +1,5 @@
 This directory contains a brute force GPU implementation of the L and Lk matrix norms, for reference.
+The first tag of the filename of the code shows which L norm the code is developed to calculate for a given matrix. For example the L1_str_red_calc_int_mtx.cu is developed to determine the L1 norm of a matrix.
 
 M36x36.txt is a test matrix for the programs.
 
