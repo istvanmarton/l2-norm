@@ -1,8 +1,8 @@
-/******************************
+/*****************************
 
-WRITTEN BY ISTVÁN MÁRTON
+WRITTEN BY ISTVÁN MÁRTON
 
-******************************/
+*****************************/
 
 #include<stdio.h>
 #include<math.h>
@@ -364,6 +364,7 @@ void calc_Lnorm(int* n, int* iRows, int* iCols, int** mtx){
 	cudaGetDeviceProperties(&devProp, 0);
 	mtx_to_vec = (int*)calloc(*iRows * *iCols, sizeof(int)); // allocating memory for the mtx_to_vec variable
 
+	if(NUM_OF_THREADS < 1) {printf("The  NUM_OF_THREADS variable must be greater than 1. Modify it, and compile again!\n"); exit(-1);}
 	if(*n == 1){ // if the order of the L norm is 1 then this part of the code will be executed.
 		int iShorter, iLonger; //iShorter is the number of rows or columns, whichever is less; iLonger is the number of rows or columns, whichever is bigger
 		if( *iRows > *iCols ){ //In this if else sequence the code transposes the matrix if necessary and transform a matrix into a vector
@@ -388,8 +389,7 @@ void calc_Lnorm(int* n, int* iRows, int* iCols, int** mtx){
 		Inner_num = (unsigned long long int) 1 << (iShorter - 1); //The number of possible L values that the device should calculate is 2^(iShorter-1)
 		copyNum = NUM_OF_THREADS > Inner_num ? Inner_num : NUM_OF_THREADS; // The possible number of L norms can not be more than the number of threads
 		num_ofThread = copyNum < devProp.warpSize ? copyNum : devProp.warpSize; // Number of threads in a block can not be bigger than the number of warps.
-		num_ofBlock = copyNum/num_ofThread; //The number of blocks the code uses.
-		if((copyNum % num_ofThread) != 0) {printf("The NUM_OF_THREADS variable must be divisible with the number of threads in one block which is %d. Please modify the NUM_OF_THREADS variable and recompile this code again.\n", num_ofThread); exit(-1);}
+		num_ofBlock = copyNum/num_ofThread; copyNum = num_ofBlock * num_ofThread; //The number of blocks the code uses.
 		steps = Inner_num/copyNum; steps_remainder = Inner_num % copyNum;
 		Ln_vector = (int*) malloc(copyNum * sizeof(int)); // The code allocates memory in the host for the possible L norms.
 		Ln_strategy = (int*) malloc(copyNum * (iShorter - 1) * sizeof(int)); // The code allocates memory for the possible strategies belonging to L norms in the host.
@@ -420,10 +420,9 @@ void calc_Lnorm(int* n, int* iRows, int* iCols, int** mtx){
 		if(*iCols > length) {printf("Matrix is too big. The length variable %d should be bigger or equal than %d.\n", length, *iCols); exit(-1);}
 		cudaMalloc((void**)&d_mtx_to_vec, *iRows * *iCols * sizeof(int));
 		Inner_num = (unsigned long long int) 1 << (*iRows - 1);
-		copyNum = NUM_OF_THREADS > Inner_num ? Inner_num : NUM_OF_THREADS;
-		num_ofThread = copyNum < devProp.warpSize ? copyNum : devProp.warpSize;
-		num_ofBlock = copyNum/num_ofThread;
-		if((copyNum % num_ofThread) != 0) {printf("The NUM_OF_THREADS variable must be divisible with the number of threads in one block which is %d. Please modify the NUM_OF_THREADS variable and recompile this code again.\n", num_ofThread); exit(-1);}
+		copyNum = NUM_OF_THREADS > Inner_num ? Inner_num : NUM_OF_THREADS; // The possible number of L norms can not be more than the number of threads
+		num_ofThread = copyNum < devProp.warpSize ? copyNum : devProp.warpSize; // Number of threads in a block can not be bigger than the number of warps.
+		num_ofBlock = copyNum/num_ofThread; copyNum = num_ofBlock * num_ofThread; //The number of blocks the code uses.
 		steps=Inner_num/copyNum; steps_remainder = Inner_num % copyNum;
 		Ln_vector = (int*) malloc(copyNum * sizeof(int));
 		Ln_strategy = (int*) malloc(copyNum * (*iRows - 1) * sizeof(int));
@@ -451,13 +450,11 @@ void calc_Lnorm(int* n, int* iRows, int* iCols, int** mtx){
 				}
 			}
 		cudaMalloc((void**)&d_mtx_to_vec, *iRows * *iCols * sizeof(int));
-		Inner_num = (unsigned long long int) 1;
-		for(i = 0; i < (*iRows - 1); i++) {
-			Inner_num *=3; 
-			if(Inner_num < devProp.warpSize){num_ofThread = Inner_num;} 
-			if(Inner_num < (3 * NUM_OF_THREADS)) {copyNum = Inner_num;}
-		}
-		num_ofBlock = copyNum/num_ofThread;
+		Inner_num = pow(3, *iRows - 1);
+		copyNum = NUM_OF_THREADS > Inner_num ? Inner_num : NUM_OF_THREADS; // The possible number of L norms can not be more than the number of threads
+		num_ofThread = copyNum < devProp.warpSize ? copyNum : devProp.warpSize; // Number of threads in a block can not be bigger than the number of warps.
+		num_ofBlock = copyNum/num_ofThread; copyNum = num_ofBlock * num_ofThread; //The number of blocks the code uses.
+printf("Inner_num: %llu, copyNum: %llu, num_ofThread: %d, num_ofBlock: %d", Inner_num, copyNum, num_ofThread, num_ofBlock);
 		maxRows = (int) (floor (NUM_OF_BITS / log2(*n)) + 1);
 		if( *iRows > maxRows) {printf("Matrix is too big. The number of rows can not be more than %d.\n", maxRows); exit(-1);}
 		if(*iCols > length) {printf("Matrix is too big. The length variable %d should be bigger or equal than %d.\n", length, *iCols); exit(-1);}
@@ -500,13 +497,10 @@ void calc_Lnorm(int* n, int* iRows, int* iCols, int** mtx){
 		}
 		*n = ((*n < *iRows)? *n:*iRows);
 		cudaMalloc((void**)&d_mtx_to_vec, *iRows * *iCols * sizeof(int));
-		Inner_num = (unsigned long long int) 1;
-		for(i = 0; i < (*iRows - 1); i++) {
-			Inner_num *=*n;
-			if(Inner_num < (*n * devProp.warpSize)){num_ofThread = Inner_num;} 
-			if(Inner_num < (*n * NUM_OF_THREADS)) {copyNum = Inner_num;}
-		}
-		num_ofBlock = copyNum/num_ofThread;
+		Inner_num = pow(*n, *iRows - 1);
+		copyNum = NUM_OF_THREADS > Inner_num ? Inner_num : NUM_OF_THREADS; // The possible number of L norms can not be more than the number of threads
+		num_ofThread = copyNum < devProp.warpSize ? copyNum : devProp.warpSize; // Number of threads in a block can not be bigger than the number of warps.
+		num_ofBlock = copyNum/num_ofThread; copyNum = num_ofBlock * num_ofThread; //The number of blocks the code uses.
 
 		maxRows = (int) (floor (NUM_OF_BITS / log2(*n)) + 1);
 		if(*iRows > maxRows) {printf("Matrix is too big. The number of rows can not be more than %d.\n", maxRows); exit(-1);}
