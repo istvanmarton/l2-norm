@@ -454,7 +454,6 @@ void calc_Lnorm(int* n, int* iRows, int* iCols, int** mtx){
 		copyNum = NUM_OF_THREADS > Inner_num ? Inner_num : NUM_OF_THREADS; // The possible number of L norms can not be more than the number of threads
 		num_ofThread = copyNum < devProp.warpSize ? copyNum : devProp.warpSize; // Number of threads in a block can not be bigger than the number of warps.
 		num_ofBlock = copyNum/num_ofThread; copyNum = num_ofBlock * num_ofThread; //The number of blocks the code uses.
-printf("Inner_num: %llu, copyNum: %llu, num_ofThread: %d, num_ofBlock: %d", Inner_num, copyNum, num_ofThread, num_ofBlock);
 		maxRows = (int) (floor (NUM_OF_BITS / log2(*n)) + 1);
 		if( *iRows > maxRows) {printf("Matrix is too big. The number of rows can not be more than %d.\n", maxRows); exit(-1);}
 		if(*iCols > length) {printf("Matrix is too big. The length variable %d should be bigger or equal than %d.\n", length, *iCols); exit(-1);}
