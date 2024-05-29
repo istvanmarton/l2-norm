@@ -1,6 +1,6 @@
 /*****************************
 
-WRITTEN BY ISTVÁN MÁRTON
+WRITTEN BY ISTVĂÂN MĂÂRTON
 
 *****************************/
 
@@ -8,7 +8,7 @@ WRITTEN BY ISTVÁN MÁRTON
 #include<math.h>
 #include<stdlib.h>
 #define length 4096
-#define NUM_OF_THREADS 16384
+#define NUM_OF_THREADS 32768
 #define RANK_OF_NORM 20
 #define NUM_OF_BITS 8 * sizeof(unsigned long long int)
 
@@ -49,25 +49,25 @@ __global__ void L1(int* d_mtx_to_vec, unsigned long long int steps, unsigned lon
 			if( ((number+ iNumofZeros) % iNum_temp) == 0 ) {vect[i]=-vect[i]; // The code calculates if there is a change in the i-th digit in the BRGC.
 				if(vect[i] > 0){for(l=0; l < iLonger; l++){temp[l] += 2 * d_mtx_to_vec[i * iLonger + l]; }} // When the i-th digit is changed, the code changes the result of the vector-matrix multiplication. It only deals with the i-th row of the matrix.
 				else {for(l=0; l < iLonger; l++){temp[l] -= 2 *d_mtx_to_vec[i * iLonger + l]; }}
-			break;
+			break; // Every time the code finds the change in the BRGC, it stops searching for further changes. It increases the performance of the computation.
 		}
             		}
 	for(l = 0; l < (iLonger ); l++) {product += abs(temp[l]);} // Calculates the number-th possible L1 value.
-		if(product > L1) {L1 = product; // If the current possible L1 value is greater than the previous, it modifies both the value and the corresponding strategy vector as well.
-			for(l=1; l<iShorter; l++){d_L1_strategy[index * (iShorter - 1) + l - 1] = vect[l];}
+		if(product > L1) {L1 = product; // If the current possible L1 value is greater than the previous, it modifies both the value 
+			for(l=1; l<iShorter; l++){d_L1_strategy[index * (iShorter - 1) + l - 1] = vect[l];} //and the corresponding strategy vector as well.
 		}
     }
 d_L1_vector[index] = L1; // Every thread writes the biggest found L1 value to the d_L1_vector. This vector will be copied to the host memory.
 }
 
-__global__ void L2(int* d_mtx_to_vec, unsigned long long int steps, unsigned long long int steps_remainder, int *d_L2_vector, int *d_L2_strategy, int iRows, int iCols){
-	int i, l, logical;
+__global__ void L2(int* d_mtx_to_vec, unsigned long long int steps, unsigned long long int steps_remainder, int *d_L2_vector, int *d_L2_strategy, int iRows, int iCols){ // This function calculates the L2 norm on the GPU.
+	int i, l;
 	int temp_negative[length], temp_positive[length], vect[NUM_OF_BITS], product, L2;
 	unsigned long long int number, index, iMax, iMin, iNumofZeros, iNum_temp;
 
-	index = blockIdx.x * blockDim.x + threadIdx.x;
+	index = blockIdx.x * blockDim.x + threadIdx.x; // Index of threads.
 
-	iMax = (index + 1) *(steps) - 1;
+	iMax = (index + 1) *(steps) - 1; // This part calculates the minimal (iMin-th) and the maximal (iMax-th) word of the binary reflected Gray code for which the calculations must be performed by a given thread.
 	iMin = index * (steps);
 	if(index < (steps_remainder) ) iMax += index + 1;
 	else iMax += (steps_remainder);
@@ -75,50 +75,49 @@ __global__ void L2(int* d_mtx_to_vec, unsigned long long int steps, unsigned lon
 	else iMin += (steps_remainder);
 	number = iMin;
 
-	for(l=0; l < iCols; l++) {temp_negative[l] = 0; temp_positive[l] = d_mtx_to_vec[l]; }
+	for(l=0; l < iCols; l++) {temp_negative[l] = 0; temp_positive[l] = d_mtx_to_vec[l]; } // As the code can consider a row of the matrix with fixed sign, it considers the first row of the matrix with +1.
 	product = 0;
 	for(i = 1 ; iRows > i; i++){
-		iNum_temp = (unsigned long long int) 1 << i;
+		iNum_temp = (unsigned long long int) 1 << i; // iNum_temp and iNumofZeros are coefficients to determine the j-th word of BRGC.
 		iNumofZeros=(unsigned long long int) iNum_temp >> 1;		
-		logical = ((number+ iNumofZeros)/iNum_temp) % 2;
-		vect[i] = (int) 2 * logical - 1;
-			if(vect[i] > 0){for(l=0; l < iCols; l++){temp_positive[l] += d_mtx_to_vec[i * iCols + l]; }}
+		vect[i] = ((number+ iNumofZeros)/iNum_temp) % 2; // vect is the possible strategy vector. It's elements consists of 0 and +1.
+			if(vect[i] == 1){for(l=0; l < iCols; l++){temp_positive[l] += d_mtx_to_vec[i * iCols + l]; }}
 			else {for(l=0; l < iCols; l++){temp_negative[l] += d_mtx_to_vec[i * iCols + l]; }}				
 	}
 
 	for(l= 0; l < iCols; l++) {product += abs(temp_negative[l]) + abs(temp_positive[l]);}
-	L2 = product;
-	for(l=1; l<iRows; l++){d_L2_strategy[index * (iRows - 1) + l - 1] = vect[l];}
+	L2 = product; // The code calculates the first possible L2 value associated to the thread.
+	for(l=1; l<iRows; l++){d_L2_strategy[index * (iRows - 1) + l - 1] = vect[l];} // The code writes the first possible strategy vector into the d_L2_strategy vector.
 
 	for(number=iMin + 1; number <= iMax; number++){
 	product = 0;
 	for(i = 1 ; iRows > i; i++){
 		iNum_temp = (unsigned long long int) 1 << i;
 		iNumofZeros=(unsigned long long int) iNum_temp >> 1;
-		if( ((number+ iNumofZeros) % iNum_temp) == 0 ) {vect[i]=-vect[i] ;				
-			if(vect[i] > 0){for(l=0; l < iCols; l++){temp_positive[l] += d_mtx_to_vec[i * iCols + l]; temp_negative[l] -= d_mtx_to_vec[i * iCols + l]; }}
-			else {for(l=0; l < iCols; l++){temp_positive[l] -= d_mtx_to_vec[i * iCols + l]; temp_negative[l] += d_mtx_to_vec[i * iCols + l]; }}
-			break;
+		if( ((number+ iNumofZeros) % iNum_temp) == 0 ) { // The code calculates if there is a change in the i-th digit in the BRGC.
+			if(vect[i] == 0){vect[i]=1; for(l=0; l < iCols; l++){temp_positive[l] += d_mtx_to_vec[i * iCols + l]; temp_negative[l] -= d_mtx_to_vec[i * iCols + l]; }} // When the i-th digit is changed, the code changes the result defined by the definition of the L2 norm. It only deals with the i-th row of the matrix.
+			else {vect[i]=0; for(l=0; l < iCols; l++){temp_positive[l] -= d_mtx_to_vec[i * iCols + l]; temp_negative[l] += d_mtx_to_vec[i * iCols + l]; }}
+			break; // Every time the code finds the change in the BRGC, it stops searching for further changes. It increases the performance of the computation.
 		}
 	}
 	
 	for(l = 0; l < (iCols ); l++) {product += abs(temp_negative[l]) + abs(temp_positive[l]);}
-	if(product > L2) {L2 = product;
-		for(l=1; l<iRows; l++){d_L2_strategy[index * (iRows - 1) + l - 1] = vect[l];}
+	if(product > L2) {L2 = product; // If the current possible L2 value is greater than the previous, it modifies both the value,
+		for(l=1; l<iRows; l++){d_L2_strategy[index * (iRows - 1) + l - 1] = vect[l];} // and the corresponding strategy vector as well.
 	}
     }
-d_L2_vector[index] = L2;
+d_L2_vector[index] = L2; // Every thread writes the biggest found L2 value to the d_L2_vector. This vector will be copied to the host memory.
 }
 
-__global__ void L3(int* d_mtx_to_vec, unsigned long long int steps, unsigned long long int steps_remainder, int *d_L3_vector, int *d_L3_strategy, int iRows, int iCols, unsigned long long int *d_iNumPower){
-	int i, l, helper[6] = {0, 1, 2, 2, 1, 0};
+__global__ void L3(int* d_mtx_to_vec, unsigned long long int steps, unsigned long long int steps_remainder, int *d_L3_vector, int *d_L3_strategy, int iRows, int iCols, unsigned long long int *d_iNumPower){ // This function calculates the L3 norm on the GPU.
+	int i, l, helper[6] = {0, 1, 2, 2, 1, 0}; // The helper describes the pattern of the ternary reflected Gray code (TRGC).
 
 	int temp_0[length], temp_1[length], temp_2[length], vect[NUM_OF_BITS + 1], product, L3 = 0, logical, temporary;
 	unsigned long long int number, index, iMax, iMin, divide;
 
-	index = blockIdx.x * blockDim.x + threadIdx.x;
+	index = blockIdx.x * blockDim.x + threadIdx.x; // Index of threads.
 
-	iMax = (index + 1) *(steps) - 1;
+	iMax = (index + 1) *(steps) - 1; // This part calculates the minimal (iMin-th) and the maximal (iMax-th) word of the ternary reflected Gray code for which the calculations must be performed by a given thread.
 	iMin = index * (steps);
 	if(index < (steps_remainder) ) iMax += index + 1;
 	else iMax += (steps_remainder);
@@ -126,11 +125,11 @@ __global__ void L3(int* d_mtx_to_vec, unsigned long long int steps, unsigned lon
 	else iMin += (steps_remainder);
 	
 	number = iMin;
-	for(l=0; l < iCols; l++) {temp_0[l] = d_mtx_to_vec[(iRows-1) * iCols + l]; temp_1[l] = 0; temp_2[l] = 0;}
+	for(l=0; l < iCols; l++) {temp_0[l] = d_mtx_to_vec[(iRows-1) * iCols + l]; temp_1[l] = 0; temp_2[l] = 0;} // As the code can consider a row of the matrix with fixed sign, it considers the last row of the matrix with 0.
 	product = 0;
 	for(i = 0 ; (iRows - 1) > i; i++){
 		logical = (number/d_iNumPower[i]) % 6; // Determines the ternary reflected Gray code (TRGC). d_iNumPower is a vector consisting of the power of 3. This vector was copied from the host to speed up the calculation of TRGC as the power of 3 does not need to be determined every time.
-		vect[i] = helper[logical];
+		vect[i] = helper[logical]; // vect is the possible strategy vector. It's elements consists of 0, +1, and +2.
 		switch(vect[i])
 			{
 			case 0:
@@ -141,48 +140,49 @@ __global__ void L3(int* d_mtx_to_vec, unsigned long long int steps, unsigned lon
 			break;
 			case 2:
 			for(l=0; l < iCols; l++){temp_2[l] += d_mtx_to_vec[i * iCols + l]; }
-			break;
+			break; // Every time the code finds the change in the TRGC, it stops searching for further changes. It increases the performance of the computation.
 			}				
 	}
 	
 	for(l= 0; l < iCols; l++) {product += abs(temp_0[l]) + abs(temp_1[l]) + abs(temp_2[l]);}
-	L3 = product;
-	for(l=0; l<(iRows - 1); l++){d_L3_strategy[index * (iRows - 1) + l] = vect[l];}
+	L3 = product; // The code calculates the first possible L3 value associated to the thread.
+	for(l=0; l<(iRows - 1); l++){d_L3_strategy[index * (iRows - 1) + l] = vect[l];} // The code writes the first possible strategy vector into the d_L3_strategy vector.
 
 	for(number=iMin + 1; number <= iMax; number++){
       	product = 0;
-		for(i = 0 ; (iRows - 1) > i; i++){
-			divide = number/d_iNumPower[i];
-			logical = divide % 3; //printf("%d, ", logical);
-			if(logical) {
-				logical = divide % 6;
-				temporary = helper[logical];
-				if( (vect[i] == 0)  && (temporary == 1) ) {for(l=0; l < iCols; l++){temp_0[l] -= d_mtx_to_vec[i * iCols + l]; temp_1[l] += d_mtx_to_vec[i * iCols + l];}}
-					else if((vect[i] == 1)  && (temporary == 2)) {for(l=0; l < iCols; l++){temp_1[l] -= d_mtx_to_vec[i * iCols + l]; temp_2[l] += d_mtx_to_vec[i * iCols + l];}}
-					else if((vect[i] == 2)  && (temporary == 1)) {for(l=0; l < iCols; l++){temp_1[l] += d_mtx_to_vec[i * iCols + l]; temp_2[l] -= d_mtx_to_vec[i * iCols + l];}}
-					else {for(l=0; l < iCols; l++){temp_0[l] += d_mtx_to_vec[i * iCols + l]; temp_1[l] -= d_mtx_to_vec[i * iCols + l];}}
-					vect[i] = temporary;
-					break;
-			}				
-		}
+	for(i = 0 ; (iRows - 1) > i; i++){
+		divide = number/d_iNumPower[i];
+		logical = divide % 3; // The code calculates if there is a change in the i-th digit in the TRGC.
+		if(logical) {
+			logical = divide % 6; // If there is a change, the code determines the value of the TRGC at that position.
+			temporary = helper[logical];
+			if( (vect[i] == 0)  && (temporary == 1) ) {for(l=0; l < iCols; l++){temp_0[l] -= d_mtx_to_vec[i * iCols + l]; temp_1[l] += d_mtx_to_vec[i * iCols + l];}}// When the i-th digit is changed, the code changes the result defined by the definition of the L3 norm. It only deals with the i-th row of the matrix.
+				else if((vect[i] == 1)  && (temporary == 2)) {for(l=0; l < iCols; l++){temp_1[l] -= d_mtx_to_vec[i * iCols + l]; temp_2[l] += d_mtx_to_vec[i * iCols + l];}}
+				else if((vect[i] == 2)  && (temporary == 1)) {for(l=0; l < iCols; l++){temp_1[l] += d_mtx_to_vec[i * iCols + l]; temp_2[l] -= d_mtx_to_vec[i * iCols + l];}}
+				else {for(l=0; l < iCols; l++){temp_0[l] += d_mtx_to_vec[i * iCols + l]; temp_1[l] -= d_mtx_to_vec[i * iCols + l];}}
+				vect[i] = temporary;
+				break; // Every time the code finds the change in the d-ary Gray code, it stops searching for further changes. It increases the performance of the computation.
+		}				
+	}
 		
-	for(l= 0; l < iCols; l++) {product += abs(temp_0[l]) + abs(temp_1[l]) + abs(temp_2[l]);}
+	for(l= 0; l < iCols; l++) {product += abs(temp_0[l]) + abs(temp_1[l]) + abs(temp_2[l]);} // The code calculates the next possible L3 value.
 		if(product > L3) {
-			L3 = product;
-			for(l=0; l<(iRows - 1); l++){d_L3_strategy[index * (iRows - 1) + l] = vect[l];}
+			L3 = product; // If the current possible L3 value is greater than the previous, it modifies both the value,
+			for(l=0; l<(iRows - 1); l++){d_L3_strategy[index * (iRows - 1) + l] = vect[l];} // and the corresponding strategy vector as well.
 		}
 	}
-d_L3_vector[index] = L3;
+d_L3_vector[index] = L3; // Every thread writes the biggest found L3 value to the d_L3_vector. This vector will be copied to the host memory.
 }
 
-__global__ void Ln(int* d_mtx_to_vec, int* d_iHelper, unsigned long long int steps, unsigned long long int steps_remainder, int *d_Ln_vector, int *d_Ln_strategy, int iRows, int iCols, int n, unsigned long long int *d_iNumPower){
+__global__ void Ln(int* d_mtx_to_vec, int* d_iHelper, unsigned long long int steps, unsigned long long int steps_remainder, int *d_Ln_vector, int *d_Ln_strategy, int iRows, int iCols, int n, unsigned long long int *d_iNumPower){ // This function calculates the Ld norm on the GPU.
 	int i, l;
 	int temp[RANK_OF_NORM][length], vect[NUM_OF_BITS + 1], product, Ln = 0;
 	unsigned long long int number, index, iMax, iMin, divide;
 
 	int logical, temporary;
-	index = blockIdx.x * blockDim.x + threadIdx.x;
-	iMax = (index + 1) *(steps) - 1;
+	index = blockIdx.x * blockDim.x + threadIdx.x; // Index of threads.
+
+	iMax = (index + 1) *(steps) - 1; // This part calculates the minimal (iMin-th) and the maximal (iMax-th) word of the d-ary reflected Gray code for which the calculations must be performed by a given thread.
 	iMin = index * (steps);
 	if(index < (steps_remainder) ) iMax += index + 1;
 	else iMax += (steps_remainder);
@@ -190,8 +190,8 @@ __global__ void Ln(int* d_mtx_to_vec, int* d_iHelper, unsigned long long int ste
 	else iMin += (steps_remainder);
 	number = iMin;
 
-	for(l=0; l < iCols; l++) {
-		temp[0][l] = d_mtx_to_vec[(iRows-1) * iCols + l]; 
+	for(l=0; l < iCols; l++) { // Initializes the temp variable.
+		temp[0][l] = d_mtx_to_vec[(iRows-1) * iCols + l]; // As the code can consider a row of the matrix with fixed sign, it considers the last row of the matrix with 0.
 		for(i=1; i<n; i++){
 			temp[i][l] = 0;
 		}
@@ -209,33 +209,34 @@ __global__ void Ln(int* d_mtx_to_vec, int* d_iHelper, unsigned long long int ste
 			product += abs(temp[i][l]);
 		}
 	}
-	Ln = product;
-	for(l=0; l<(iRows - 1); l++){d_Ln_strategy[index * (iRows - 1) + l] = vect[l];}
+	Ln = product;  // The code calculates the first possible Ln value associated to the thread.
+	for(l=0; l<(iRows - 1); l++){d_Ln_strategy[index * (iRows - 1) + l] = vect[l];} // The code writes the first possible strategy vector into the d_Ln_strategy vector.
 
 	for(number=iMin + 1; number <= iMax; number++){
 		product = 0;
 		for(i = 0 ; (iRows - 1) > i; i++){
 			divide = number/d_iNumPower[i];
-			logical = divide % n; //printf("%d, ", logical);
+			logical = divide % n; //printf("%d, ", logical); // The code calculates if there is a change in the i-th digit in the d-ary Gray code.
 			if(logical) {
-				logical = divide % (2*n);
+				logical = divide % (2*n); // If there is a change, the code determines the value of the d-ary Gray code at that position.
 				temporary = d_iHelper[logical];
-				for(l=0; l < iCols; l++) {temp[vect[i]][l] -= d_mtx_to_vec[i * iCols + l]; temp[temporary][l] += d_mtx_to_vec[i * iCols + l];}
+				for(l=0; l < iCols; l++) {temp[vect[i]][l] -= d_mtx_to_vec[i * iCols + l]; temp[temporary][l] += d_mtx_to_vec[i * iCols + l];} // When the i-th digit is changed, the code changes the result defined by the definition of the L3 norm. It only deals with the i-th row of the matrix.
 				vect[i] = temporary;
 				break;
 			}			
 		}
-		for(l= 0; l < iCols; l++) {
+		for(l= 0; l < iCols; l++) { // The code calculates the next possible Ln value.
 			for(i=0; i < n; i++){
 				product += abs(temp[i][l]);
 			}
 		}
 		if(product > Ln) {
-			Ln = product;
-			for(l=0; l<(iRows - 1); l++){d_Ln_strategy[index * (iRows - 1) + l] = vect[l];}
+			Ln = product; // If the current possible Ln value is greater than the previous, it modifies both the value,
+			for(l=0; l<(iRows - 1); l++){d_Ln_strategy[index * (iRows - 1) + l] = vect[l];} // and the corresponding strategy vector as well.
+
 		}
 	}
-d_Ln_vector[index] = Ln;
+d_Ln_vector[index] = Ln; // Every thread writes the biggest found Ln value to the d_Ln_vector. This vector will be copied to the host memory.
 }
 
 int** mtx_read(int *iRows, int *iCols, char* fileName){
