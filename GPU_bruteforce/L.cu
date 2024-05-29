@@ -161,7 +161,7 @@ __global__ void L3(int* d_mtx_to_vec, unsigned long long int steps, unsigned lon
 				else if((vect[i] == 2)  && (temporary == 1)) {for(l=0; l < iCols; l++){temp_1[l] += d_mtx_to_vec[i * iCols + l]; temp_2[l] -= d_mtx_to_vec[i * iCols + l];}}
 				else {for(l=0; l < iCols; l++){temp_0[l] += d_mtx_to_vec[i * iCols + l]; temp_1[l] -= d_mtx_to_vec[i * iCols + l];}}
 				vect[i] = temporary;
-				break; // Every time the code finds the change in the d-ary Gray code, it stops searching for further changes. It increases the performance of the computation.
+				break; // Every time the code finds the change in the TRGC, it stops searching for further changes. It increases the performance of the computation.
 		}				
 	}
 		
@@ -209,14 +209,14 @@ __global__ void Ln(int* d_mtx_to_vec, int* d_iHelper, unsigned long long int ste
 			product += abs(temp[i][l]);
 		}
 	}
-	Ln = product;  // The code calculates the first possible Ln value associated to the thread.
+	Ln = product;  // The code calculates the first possible Ln value associated with the thread.
 	for(l=0; l<(iRows - 1); l++){d_Ln_strategy[index * (iRows - 1) + l] = vect[l];} // The code writes the first possible strategy vector into the d_Ln_strategy vector.
 
 	for(number=iMin + 1; number <= iMax; number++){
 		product = 0;
 		for(i = 0 ; (iRows - 1) > i; i++){
 			divide = number/d_iNumPower[i];
-			logical = divide % n; //printf("%d, ", logical); // The code calculates if there is a change in the i-th digit in the d-ary Gray code.
+			logical = divide % n; // The code calculates if there is a change in the i-th digit in the d-ary Gray code.
 			if(logical) {
 				logical = divide % (2*n); // If there is a change, the code determines the value of the d-ary Gray code at that position.
 				temporary = d_iHelper[logical];
