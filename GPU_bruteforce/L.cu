@@ -1,6 +1,6 @@
 /*****************************
 
-WRITTEN BY ISTVĂÂN MĂÂRTON
+WRITTEN BY ISTVÁN MÁRTON
 
 *****************************/
 
