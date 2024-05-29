@@ -43,7 +43,7 @@ __global__ void L1(int* d_mtx_to_vec, unsigned long long int steps, unsigned lon
 
 	for(number=iMin + 1; number <= iMax; number++){ //The code determines the BRGC words till number variable reaches iMax.
 		product = 0;
-		for(i = 1 ; (iShorter - 1) > i; i++){
+		for(i = 0 ; (iShorter - 1) > i; i++){
 			iNumofZeros=(unsigned long long int) 1 << i;
 			iNum_temp = (unsigned long long int) iNumofZeros << 1;
 			if( ((number+ iNumofZeros) % iNum_temp) == 0 ) {vect[i]=-vect[i]; // The code calculates if there is a change in the i-th digit in the BRGC.
@@ -62,7 +62,7 @@ d_L1_vector[index] = L1; // Every thread writes the biggest found L1 value to th
 
 __global__ void L2(int* d_mtx_to_vec, unsigned long long int steps, unsigned long long int steps_remainder, int *d_L2_vector, int *d_L2_strategy, int iRows, int iCols){ // This function calculates the L2 norm on the GPU.
 	int i, l;
-	int temp_negative[length], temp_positive[length], vect[NUM_OF_BITS - 1], product, L2;
+	int temp_0[length], temp_1[length], vect[NUM_OF_BITS - 1], product, L2;
 	unsigned long long int number, index, iMax, iMin, iNumofZeros, iNum_temp;
 
 	index = blockIdx.x * blockDim.x + threadIdx.x; // Index of threads.
@@ -75,33 +75,33 @@ __global__ void L2(int* d_mtx_to_vec, unsigned long long int steps, unsigned lon
 	else iMin += (steps_remainder);
 	number = iMin;
 
-	for(l=0; l < iCols; l++) {temp_negative[l] = 0; temp_positive[l] = d_mtx_to_vec[(iRows-1) * iCols + l]; } // As the code can consider a row of the matrix with fixed sign, it considers the first row of the matrix with +1.
+	for(l=0; l < iCols; l++) {temp_0[l] = d_mtx_to_vec[(iRows-1) * iCols + l]; temp_1[l] = 0; } // As the code can consider a row of the matrix with fixed sign, it considers the first row of the matrix with +1.
 	product = 0;
 	for(i = 0 ; (iRows-1) > i; i++){
 		iNumofZeros=(unsigned long long int) 1 << i;
 		iNum_temp = (unsigned long long int) iNumofZeros << 1; // iNum_temp and iNumofZeros are coefficients to determine the j-th word of BRGC.
 		vect[i] = ((number+ iNumofZeros)/iNum_temp) % 2; // vect is the possible strategy vector. It's elements consists of 0 and +1.
-			if(vect[i] == 1){for(l=0; l < iCols; l++){temp_positive[l] += d_mtx_to_vec[i * iCols + l]; }}
-			else {for(l=0; l < iCols; l++){temp_negative[l] += d_mtx_to_vec[i * iCols + l]; }}				
+			if(vect[i] == 1){for(l=0; l < iCols; l++){temp_1[l] += d_mtx_to_vec[i * iCols + l]; }}
+			else {for(l=0; l < iCols; l++){temp_0[l] += d_mtx_to_vec[i * iCols + l]; }}				
 	}
 
-	for(l= 0; l < iCols; l++) {product += abs(temp_negative[l]) + abs(temp_positive[l]);}
+	for(l= 0; l < iCols; l++) {product += abs(temp_0[l]) + abs(temp_1[l]);}
 	L2 = product; // The code calculates the first possible L2 value associated to the thread.
 	for(l=0; l<(iRows - 1); l++){d_L2_strategy[index * (iRows - 1) + l] = vect[l];} // The code writes the first possible strategy vector into the d_L2_strategy vector.
 
 	for(number=iMin + 1; number <= iMax; number++){
 	product = 0;
-	for(i = 1 ; (iRows - 1) > i; i++){
+	for(i = 0; (iRows - 1) > i; i++){
 		iNumofZeros=(unsigned long long int) 1 << i;
 		iNum_temp = (unsigned long long int) iNumofZeros << 1;
 		if( ((number+ iNumofZeros) % iNum_temp) == 0 ) { // The code calculates if there is a change in the i-th digit in the BRGC.
-			if(vect[i] == 0){vect[i]=1; for(l=0; l < iCols; l++){temp_positive[l] += d_mtx_to_vec[i * iCols + l]; temp_negative[l] -= d_mtx_to_vec[i * iCols + l]; }} // When the i-th digit is changed, the code changes the result defined by the definition of the L2 norm. It only deals with the i-th row of the matrix.
-			else {vect[i]=0; for(l=0; l < iCols; l++){temp_positive[l] -= d_mtx_to_vec[i * iCols + l]; temp_negative[l] += d_mtx_to_vec[i * iCols + l]; }}
+			if(vect[i] == 0){vect[i]=1; for(l=0; l < iCols; l++){temp_1[l] += d_mtx_to_vec[i * iCols + l]; temp_0[l] -= d_mtx_to_vec[i * iCols + l]; }} // When the i-th digit is changed, the code changes the result defined by the definition of the L2 norm. It only deals with the i-th row of the matrix.
+			else {vect[i]=0; for(l=0; l < iCols; l++){temp_1[l] -= d_mtx_to_vec[i * iCols + l]; temp_0[l] += d_mtx_to_vec[i * iCols + l]; }}
 			break; // Every time the code finds the change in the BRGC, it stops searching for further changes. It increases the performance of the computation.
 		}
 	}
 	
-	for(l = 0; l < (iCols ); l++) {product += abs(temp_negative[l]) + abs(temp_positive[l]);}
+	for(l = 0; l < (iCols ); l++) {product += abs(temp_0[l]) + abs(temp_1[l]);}
 	if(product > L2) {L2 = product; // If the current possible L2 value is greater than the previous, it modifies both the value,
 		for(l=0; l<(iRows - 1); l++){d_L2_strategy[index * (iRows - 1) + l] = vect[l];} // and the corresponding strategy vector as well.
 	}
@@ -356,9 +356,20 @@ void nNumber(int* p, char** argv, int *argc){
 	*p = n;
 }
 
-void calc_Lnorm(int* n, int* iRows, int* iCols, int** mtx){
-	FILE *fp;
+void saveStrategy(int* Ln_strategy, int* iRows, int* iMax, int* n){
+	int i;
 	char fileOutput[1024]; // The variable 'fileOutput' is the name of the file, the 
+	FILE *fp;
+
+	sprintf(fileOutput,"strategy_L%d.txt", *n);
+	fp = fopen(fileOutput, "w");
+	for(i=0; i<(*iRows - 1); i++) {fprintf(fp, "%d\n", Ln_strategy[*iMax * (*iRows - 1) + i]);}
+	if(*n == 1) fprintf(fp,"1\n");
+	else fprintf(fp,"0\n");
+	fclose(fp);
+}
+
+void calc_Lnorm(int* n, int* iRows, int* iCols, int** mtx){
 	int i, j, iMax, *mtx_to_vec, *d_mtx_to_vec, maxRows, *Ln_vector, *d_Ln_vector, Ln_max, *Ln_strategy, *d_Ln_strategy, num_ofBlock, num_ofThread; //i and j are the indices of the input matrix; iMax is the variable belonging to the strategy vector, the index of the strategy vector; mtx_to_vec: the input matrix is converted to a vector in the host; d_mtx_to_vec: the converted matrix in the device; maxRows: them maximal number of rows (in case of L1, the maximal number of rows or columns) of the matrix the program can deal with, this number is determined by the order of the L norm that should be calculated; Ln_vector and d_Ln_vector are the two vectors containing the possible L norms belonging to a given thread in the host and device respectively; Ln_max: The maximal possible value of the L norm in the host; Ln_strategy and d_Ln_strategy are the vector containing all the possible strategy vectors belonging to different threads; num_ofBlock is the number of blocks the program uses; num_ofThread is the number of thread in a block
 	unsigned long long int steps, steps_remainder, Inner_num, copyNum; //Inner_num: the number of possible L value the device should calculate; copyNum: the number of possible L values that will be copied from the device to the host 
 	cudaDeviceProp devProp; // devProp contains the number of cores a warp contain.
@@ -403,11 +414,6 @@ void calc_Lnorm(int* n, int* iRows, int* iCols, int** mtx){
 		cudaMemcpy(Ln_strategy, d_Ln_strategy, copyNum * (iShorter - 1) * sizeof(int), cudaMemcpyDeviceToHost); // Copy the possible strategies belonging to L norm values from device to host.
 		Ln_max = Ln_vector[0]; iMax = 0; // Determining the maximal element of the Ln_vector which is the L norm, and the index of the strategy vector as well.
 		for(i = 1; i < copyNum; i++){ if(Ln_max < Ln_vector[i]) {Ln_max = Ln_vector[i]; iMax = i;}}
-
-		fp = fopen("strategy_L1.txt", "w");// Print out the strategy vector to file.
-		for(i=0; i<(iShorter - 1); i++) {fprintf(fp, "%d\n", Ln_strategy[iMax * (iShorter - 1) + i]);}
-		fprintf(fp,"1\n");
-		fclose(fp);
 	}
 	else if(*n == 2){ // if the order of the L norm is 2 then this part of the code will be executed.
 
@@ -436,11 +442,6 @@ void calc_Lnorm(int* n, int* iRows, int* iCols, int** mtx){
 		cudaMemcpy(Ln_strategy, d_Ln_strategy, copyNum * (*iRows - 1) * sizeof(int), cudaMemcpyDeviceToHost);
 		Ln_max = Ln_vector[0]; iMax = 0;
 		for(i = 1; i < copyNum; i++){ if(Ln_max < Ln_vector[i]) {Ln_max = Ln_vector[i]; iMax = i;}}
-
-		fp = fopen("strategy_L2.txt", "w");
-		for(i=0; i<(*iRows - 1); i++) {fprintf(fp, "%d\n", Ln_strategy[iMax * (*iRows - 1) + i]);}
-		fprintf(fp,"1\n");
-		fclose(fp);
 	}
 	else if(*n == 3){ // if the order of the L norm is 3 then this part of the code will be executed.
 		unsigned long long int *iNumPower, *d_iNumPower;
@@ -476,13 +477,7 @@ void calc_Lnorm(int* n, int* iRows, int* iCols, int** mtx){
 		cudaMemcpy(Ln_strategy, d_Ln_strategy, copyNum * (*iRows - 1) * sizeof(int), cudaMemcpyDeviceToHost);
 		Ln_max = Ln_vector[0]; iMax = 0;
 		for(i = 1; i < copyNum; i++){if(Ln_max < Ln_vector[i]) {Ln_max = Ln_vector[i]; iMax = i; }}
-
-		FILE *fp;
-		fp = fopen("strategy_L3.txt", "w");
-		for(i=0; i<(*iRows - 1); i++) {fprintf(fp, "%d\n", Ln_strategy[iMax * (*iRows - 1) + i]);}
-		fprintf(fp,"0\n");
-		fclose(fp);
-
+		
 		free(iNumPower);
 		cudaFree(d_iNumPower);
 	}
@@ -531,13 +526,6 @@ void calc_Lnorm(int* n, int* iRows, int* iCols, int** mtx){
 		Ln_max = Ln_vector[0]; iMax = 0;
 		for(i = 1; i < copyNum; i++){if(Ln_max < Ln_vector[i]) {Ln_max = Ln_vector[i]; iMax = i; }}
 
-		sprintf(fileOutput,"strategy_L%d.txt", *n);
-		fp = fopen(fileOutput, "w");
-		fprintf(fp, "#L%d is: %d\n", *n, Ln_max);
-		for(i=0; i<(*iRows - 1); i++) {fprintf(fp, "%d\n", Ln_strategy[iMax * (*iRows - 1) + i]);}
-		fprintf(fp,"0\n");
-		fclose(fp);
-
 		free(iNumPower);
 		free(iHelper);
 		cudaFree(d_iNumPower);
@@ -545,6 +533,7 @@ void calc_Lnorm(int* n, int* iRows, int* iCols, int** mtx){
 	}
 	
 	printf("L%d is: %d\n", *n, Ln_max); // Write out the value of the L norm to the screen.
+	saveStrategy(Ln_strategy, iRows, &iMax, n); //Write out the strategy belonging to the L norm to file.
 	
 	free(Ln_vector); // Deallocates the vectors in the host memory.
 	free(Ln_strategy);
