@@ -13,7 +13,7 @@ WRITTEN BY ISTVĂÂN MĂÂRTON
 #define NUM_OF_BITS 8 * sizeof(unsigned long long int)
 
 __global__ void L1(int* d_mtx_to_vec, unsigned long long int steps, unsigned long long int steps_remainder, int *d_L1_vector, int *d_L1_strategy, int iLonger, int iShorter){ // This function calculates the L1 norm on the GPU.
-	int i, l, logical;
+	int i, l;
 	int temp[length], vect[NUM_OF_BITS - 1], product, L1;
 	unsigned long long int number, index, iMax, iMin, iNumofZeros, iNum_temp;
 
@@ -32,9 +32,8 @@ __global__ void L1(int* d_mtx_to_vec, unsigned long long int steps, unsigned lon
 	for(i = 0 ; (iShorter - 1) > i; i++){
 		iNumofZeros=(unsigned long long int) 1 << i;
 		iNum_temp = (unsigned long long int) iNumofZeros << 1; // iNum_temp and iNumofZeros are coefficients to determine the j-th word of BRGC.		
-		logical = ((number+ iNumofZeros)/iNum_temp) % 2; // logical can be 0 and 1. logical is the number-th word and i-th digit of the BRGC.
-		vect[i] = (int) 2 * logical - 1; // vect is the possible strategy vector. It's elements consists of +1 and -1.
-		if(vect[i] > 0){for(l=0; l < iLonger; l++){temp[l] += d_mtx_to_vec[i * iLonger + l]; }} // The code determines the vector-matrix multiplication belonging to the number-th word of the BRGC.
+		vect[i] = ((number+ iNumofZeros)/iNum_temp) % 2; // logical can be 0 and 1. logical is the number-th word and i-th digit of the BRGC.
+		if(vect[i] == 1){for(l=0; l < iLonger; l++){temp[l] += d_mtx_to_vec[i * iLonger + l]; }} // The code determines the vector-matrix multiplication belonging to the number-th word of the BRGC.
 		else {for(l=0; l < iLonger; l++){temp[l] -= d_mtx_to_vec[i * iLonger + l]; }}				
 	}
 	for(l= 0; l < iLonger; l++) {product += abs(temp[l]);} // The code calculates the L1 value belonging to the number-th word of the BRGC.
@@ -46,9 +45,9 @@ __global__ void L1(int* d_mtx_to_vec, unsigned long long int steps, unsigned lon
 		for(i = 0 ; (iShorter - 1) > i; i++){
 			iNumofZeros=(unsigned long long int) 1 << i;
 			iNum_temp = (unsigned long long int) iNumofZeros << 1;
-			if( ((number+ iNumofZeros) % iNum_temp) == 0 ) {vect[i]=-vect[i]; // The code calculates if there is a change in the i-th digit in the BRGC.
-				if(vect[i] > 0){for(l=0; l < iLonger; l++){temp[l] += 2 * d_mtx_to_vec[i * iLonger + l]; }} // When the i-th digit is changed, the code changes the result of the vector-matrix multiplication. It only deals with the i-th row of the matrix.
-				else {for(l=0; l < iLonger; l++){temp[l] -= 2 *d_mtx_to_vec[i * iLonger + l]; }}
+			if( ((number+ iNumofZeros) % iNum_temp) == 0 ) {//vect[i]=-vect[i]; // The code calculates if there is a change in the i-th digit in the BRGC.
+				if(vect[i] == 0){vect[i] = 1; for(l=0; l < iLonger; l++){temp[l] += 2 * d_mtx_to_vec[i * iLonger + l]; }} // When the i-th digit is changed, the code changes the result of the vector-matrix multiplication. It only deals with the i-th row of the matrix.
+				else {vect[i] = 0; for(l=0; l < iLonger; l++){temp[l] -= 2 *d_mtx_to_vec[i * iLonger + l]; }}
 				break; // Every time the code finds the change in the BRGC, it stops searching for further changes. It increases the performance of the computation.
 			}
 		}
@@ -363,9 +362,8 @@ void saveStrategy(int* Ln_strategy, int* iRows, int* iMax, int* n){
 
 	sprintf(fileOutput,"strategy_L%d.txt", *n);
 	fp = fopen(fileOutput, "w");
-	for(i=0; i<(*iRows - 1); i++) {fprintf(fp, "%d\n", Ln_strategy[*iMax * (*iRows - 1) + i]);}
-	if(*n == 1) fprintf(fp,"1\n");
-	else fprintf(fp,"0\n");
+	if(*n == 1) {for(i=0; i<(*iRows - 1); i++) {fprintf(fp, "%d\n", 2 * Ln_strategy[*iMax * (*iRows - 1) + i] - 1);} fprintf(fp,"1\n");}
+	else {for(i=0; i<(*iRows - 1); i++) {fprintf(fp, "%d\n", Ln_strategy[*iMax * (*iRows - 1) + i]);} fprintf(fp,"0\n");}
 	fclose(fp);
 }
 
