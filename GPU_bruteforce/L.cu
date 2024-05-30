@@ -27,7 +27,7 @@ __global__ void L1(int* d_mtx_to_vec, unsigned long long int steps, unsigned lon
 	else iMin += (steps_remainder);
 	number = iMin;
 
-	for(l=0; l < iLonger; l++) {temp[l] = d_mtx_to_vec[(iShorter - 1) * iLonger + l];} // As the code can consider a row of the matrix with fixed sign, it considers the first row of the matrix with +1.
+	for(l=0; l < iLonger; l++) {temp[l] = d_mtx_to_vec[(iShorter - 1) * iLonger + l];} // As the code can consider a row of the matrix with fixed sign, it considers the last row of the matrix with +1.
 	product = 0;
 	for(i = 0 ; (iShorter - 1) > i; i++){
 		iNumofZeros=(unsigned long long int) 1 << i;
@@ -74,7 +74,7 @@ __global__ void L2(int* d_mtx_to_vec, unsigned long long int steps, unsigned lon
 	else iMin += (steps_remainder);
 	number = iMin;
 
-	for(l=0; l < iCols; l++) {temp_0[l] = d_mtx_to_vec[(iRows-1) * iCols + l]; temp_1[l] = 0; } // As the code can consider a row of the matrix with fixed sign, it considers the first row of the matrix with +1.
+	for(l=0; l < iCols; l++) {temp_0[l] = d_mtx_to_vec[(iRows-1) * iCols + l]; temp_1[l] = 0; } // As the code can consider a row of the matrix with fixed sign, it considers the last row of the matrix with 0.
 	product = 0;
 	for(i = 0 ; (iRows-1) > i; i++){
 		iNumofZeros=(unsigned long long int) 1 << i;
